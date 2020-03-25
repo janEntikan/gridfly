@@ -1,0 +1,17 @@
+[general]
+    name = "syndactyly"
+
+[build]
+    asset_dir = "assets/"
+    export_dir = "built_assets/"
+    ignore_patterns = [ "*.blend1*", "*.blend2*",]
+    converters = [ "blend2bam"]
+
+[blend2bam]
+    material_mode = "pbr"
+    pipeline = "gltf28"
+    textures = "embed"
+
+[blender]
+    use_last_path = true
+    last_path = "blender"
