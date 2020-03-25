@@ -57,14 +57,18 @@ class GameApp(ShowBase):
         self.task_mgr.add(self.update_bullets)
         self.task_mgr.add(self.update_mines)
         self.task_mgr.add(self.update_explosions)
-
         self.task_mgr.add(self.update_camera)
 
-    def make_enemies(self, amount):
         self.chasers.append(Chaser(self.models["chasers"]["spider"], (0,40,0)))
-        gap = (self.map_size[0]*2)/amount
-        for i in range(amount):
-            self.segments.append(EnemySegment(self.models["enemies"]["cent1"], length=16, x=-self.map_size[0]+(gap*i)))
+
+        for i in range(3):
+            bg = NodePath("bg")
+            self.models["backgrounds"]["0"].instance_to(bg)
+            bg.reparent_to(render)
+            bg.set_pos(0,0,-20-(i*20))
+            bg.set_scale(self.map_size[0]*4, self.map_size[1]*2, 1)
+            bg.set_transparency(True)
+            bg.set_alpha_scale(0.03)
 
     def load_models(self):
         models = ["enemies", "misc"]
@@ -81,6 +85,15 @@ class GameApp(ShowBase):
         self.models["chasers"]["spider"] = Actor("models/spider.bam")
         self.models["chasers"]["spider"].loop("walk")
         self.models["chasers"]["spider"].set_play_rate(2, "walk")
+
+        self.models["backgrounds"] = {}
+        self.models["backgrounds"]["0"] = Actor("models/bg_0.bam")
+        self.models["backgrounds"]["0"].loop("animation")
+
+    def make_enemies(self, amount):
+        gap = (self.map_size[0]*2)/amount
+        for i in range(amount):
+            self.segments.append(EnemySegment(self.models["enemies"]["cent1"], length=16, x=-self.map_size[0]+(gap*i)))
 
     def update_player(self, task):
         self.player.update()
