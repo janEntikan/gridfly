@@ -41,18 +41,25 @@ class GameApp(ShowBase):
         draw_lines(self)
 
         self.player = Player()
-        self.bullets = []
-        self.segments = []
-        self.mines = []
         self.segment_time = [0, 0.06]
 
-        self.taskMgr.add(self.update_player)
-        self.taskMgr.add(self.update_bullets)
-        self.taskMgr.add(self.update_segments)
-        self.taskMgr.add(self.update_mines)
-        self.taskMgr.add(self.update_camera)
+        self.segments = []
+        self.chasers = []
+        self.bullets = []
+        self.mines = []
+        self.explosions = []
+
+        self.task_mgr.add(self.update_player)
+        self.task_mgr.add(self.update_segments)
+        self.task_mgr.add(self.update_chasers)
+        self.task_mgr.add(self.update_bullets)
+        self.task_mgr.add(self.update_mines)
+        self.task_mgr.add(self.update_explosions)
+
+        self.task_mgr.add(self.update_camera)
 
     def make_enemies(self, amount):
+        self.chasers.append(Chaser(self.models["chasers"]["spider"], (0,40,0)))
         gap = (self.map_size[0]*2)/amount
         for i in range(amount):
             self.segments.append(EnemySegment(self.models["enemies"]["cent1"], length=16, x=-self.map_size[0]+(gap*i)))
@@ -68,9 +75,18 @@ class GameApp(ShowBase):
                 child.set_pos((0,0,0))
                 child.detach_node()
                 self.models[model][child.name] = child
+        self.models["chasers"] = {}
+        self.models["chasers"]["spider"] = Actor("models/spider.bam")
+        self.models["chasers"]["spider"].loop("walk")
+        self.models["chasers"]["spider"].set_play_rate(2, "walk")
 
     def update_player(self, task):
         self.player.update()
+        return task.cont
+
+    def update_explosions(self, task):
+        for explosion in self.explosions:
+            explosion.update()
         return task.cont
 
     def update_bullets(self, task):
@@ -81,6 +97,11 @@ class GameApp(ShowBase):
     def update_mines(self, task):
         for mine in self.mines:
             mine.update()
+        return task.cont
+
+    def update_chasers(self, task):
+        for chaser in self.chasers:
+            chaser.update()
         return task.cont
 
     def update_segments(self, task):

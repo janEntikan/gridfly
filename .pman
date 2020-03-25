@@ -1,5 +1,5 @@
 [general]
-    name = "syndactyly"
+    name = "gridfly"
 
 [build]
     asset_dir = "assets/"
