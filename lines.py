@@ -19,6 +19,13 @@ def draw_lines(base):
     sequence.loop(True)
     sequence.set_frame_rate(30)
     base.border = render.attach_new_node(sequence)
+    for i in range(2):
+        n = NodePath("border")
+        base.border.instance_to(n)
+        n.reparent_to(render)
+        n.set_z(-(i*5))
+
+
 
     # Mine cross
     base.models["lines"] = {}

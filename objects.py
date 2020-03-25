@@ -83,7 +83,7 @@ class Mine():
 
 
 class Chaser():
-    def __init__(self, geometry, pos, speed=4):
+    def __init__(self, geometry, pos, speed=6):
         self.node = NodePath("segment")
         geometry.instance_to(self.node)
         self.node.reparent_to(render)
@@ -183,11 +183,12 @@ class Bullet():
             self.destroy()
             return
         x, y, z = self.node.get_pos()
-        size = 0.60
+        enemy_size = 0.60
+        me_size = 0.1
         for segment in base.segments:
             xs, ys, zs = segment.node.get_pos()
-            if x > xs-size and x < xs+size:
-                if y > ys-size and y < ys+size:
+            if x+me_size > xs-enemy_size and x-me_size < xs+enemy_size:
+                if y+me_size > ys-enemy_size and y-me_size < ys+enemy_size:
                     segment.destroy()
                     self.destroy()
                     base.player.extra_bullet += 1

@@ -31,16 +31,18 @@ class GameApp(ShowBase):
 
         self.level = 1
         self.camera = NodePath("camera")
-        base.cam.set_pos(0,-25,50)
+        #base.cam.set_pos(0,-25,50)
+        base.cam.set_pos(0, -30, 40)
         base.cam.set_p(-50)
         base.cam.reparent_to(self.camera)
         self.camera.reparent_to(render)
 
-        self.map_size = [25,45]
+        self.map_size = [25,50]
         self.load_models()
         draw_lines(self)
 
         self.player = Player()
+        self.player.node.set_y(20)
         self.segment_time = [0, 0.06]
 
         self.segments = []
@@ -116,8 +118,14 @@ class GameApp(ShowBase):
         return task.cont
 
     def update_camera(self, task):
-        self.camera.set_pos(render, self.player.node.get_pos())
+        dt = globalClock.get_dt()
+        #self.camera.set_pos(self.player.node.get_pos())
+        vector = base.player.node.getPos() - self.camera.getPos()
+        #distance = vector.get_xy().length()
+        #vector.normalize()
+        self.camera.set_pos(self.camera.get_pos()+(vector*(4*dt)))
 
+        return task.cont
 
 
 def main():
