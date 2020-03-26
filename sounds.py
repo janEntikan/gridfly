@@ -19,10 +19,10 @@ def load_sounds():
     # announcer
     loaded_sounds["announce"] = {}
     sounds = (
-        "butterzapper", "die", "flowerpower", "gameover", "giveittome",
-        "goodbye", "gotyou", "herecomesflower", "littleflower", "obaby",
-        "sexy", "soclose", "startinggame", "supercombo", "sure",
-        "thatsthestuff", "youdie"
+        "butterzapper_recharge", "die", "flower_power", "game_over", "give_it_to_me",
+        "goodbye", "got_you", "here_comes_flower", "little_flower", "oh_baby",
+        "sexy", "so_close", "starting_game", "super_combo", "sure",
+        "thats_the_stuff", "you_die"
     )
     for sound in sounds:
         loaded_sounds["announce"][sound] = loader.load_sfx("announcer/"+sound+".ogg")

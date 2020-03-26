@@ -31,55 +31,60 @@ class GameApp(ShowBase):
             assigner=SinglePlayerAssigner(),
         )
 
-        self.level = 1
         self.map_size = [25,50]
+        self.segment_time = [0, 0.06]
+        self.flower_time = [0, 4]
         self.camera = NodePath("camera")
         #base.cam.set_pos(0,-25,50)
         base.cam.set_pos(0, -30, 40)
         base.cam.set_p(-50)
         base.cam.reparent_to(self.camera)
         self.camera.reparent_to(render)
-
         self.sounds = load_sounds()
         self.load_models()
-        draw_lines(self)
-
-        self.player = Player()
-        self.player.node.set_y(20)
-        self.segment_time = [0, 0.06]
-
+        self.music = loader.load_sfx("music/song1.ogg")
+        self.music.set_loop(True)
+        self.music.play()
+        self.bg = NodePath("bg")
+        for i in range(3):
+            bg = self.bg.attach_new_node("bg-"+str(i))
+            self.models["backgrounds"]["0"].instance_to(bg)
+            bg.set_pos(0,0,-20-(i*20))
+        self.bg.set_scale(self.map_size[0]*4, self.map_size[1]*2, 1)
+        self.bg.set_transparency(True)
+        self.bg.set_alpha_scale(0.03)
+        self.bg.reparent_to(render)
         self.segments = []
         self.chasers = []
+        self.flowers = []
         self.bullets = []
         self.mines = []
         self.explosions = []
         self.zaplines = []
-
+        self.player = Player()
         self.task_mgr.add(self.update_objects)
 
+    def destroy(self):
+        while len(self.segments) > 0: self.segments[0].destroy()
+        while len(self.chasers) > 0: self.chasers[0].destroy()
+        while len(self.flowers) > 0: self.flowers[0].destroy()
+        while len(self.bullets) > 0: self.bullets[0].destroy()
+        while len(self.mines) > 0: self.mines[0].destroy()
+        while len(self.explosions) > 0: self.explosions[0].destroy()
+        while len(self.zaplines) > 0: self.zaplines[0].destroy()
+
+    def start(self):
+        self.destroy()
+        self.announce("starting_game")
+        draw_lines(self)
+        self.level = 1
+        self.player.spawn((0,20,0))
         self.chasers.append(Chaser(self.models["chasers"]["spider"], (0,40,0)))
-        base.sounds["announce"]["startinggame"].play()
-
-        self.music = loader.load_sfx("music/song1.ogg")
-        self.music.set_loop(True)
-        self.music.play()
-
         self.make_enemies()
-
-        for i in range(3):
-            bg = NodePath("bg")
-            self.models["backgrounds"]["0"].instance_to(bg)
-            bg.reparent_to(render)
-            bg.set_pos(0,0,-20-(i*20))
-            bg.set_scale(self.map_size[0]*4, self.map_size[1]*2, 1)
-            bg.set_transparency(True)
-            bg.set_alpha_scale(0.03)
 
     def zapline(self, a, b):
         color = choice(((1,0,1,1), (1,0,0,1), (0,1,0,1), (0,1,1,1), (0,0,1,1)))
-
         base.linesegs.set_color(color)
-
         base.linesegs.move_to(a.get_pos())
         base.linesegs.draw_to(b.get_pos())
         line = render.attach_new_node(base.linesegs.create())
@@ -118,7 +123,12 @@ class GameApp(ShowBase):
             self.zaplines.remove(zapline)
 
         if self.player.alive:
+            self.flower_time[0] += dt
             self.player.update()
+            if self.player.zapping > 0:
+                self.bg.set_alpha_scale(0.2)
+            else:
+                self.bg.set_alpha_scale(0.03)
         for explosion in self.explosions:
             explosion.update()
         for bullet in self.bullets:
@@ -129,6 +139,8 @@ class GameApp(ShowBase):
             self.sounds["2d"]["lines"].stop()
         for chaser in self.chasers:
             chaser.update()
+        for flower in self.flowers:
+            flower.update()
         # segments
         self.segment_time[0] += dt
         if self.segment_time[0] > self.segment_time[1]:
@@ -139,18 +151,26 @@ class GameApp(ShowBase):
                 except:
                     pass
         # end wave
-        if len(self.segments) == 0:
-            an = choice(("obaby", "sexy", "thatsthestuff"))
-            base.sounds["announce"][an].play()
+        if len(self.segments) == 0 and base.player.alive:
+            self.announce(choice(("give_it_to_me", "oh_baby", "sexy", "thats_the_stuff")))
             self.level += 1
             self.player.zapping = -1
+            self.player.flowerpower = 0
+            self.flower_time[0] = 0
             self.make_enemies()
 
         # camera
         vector = base.player.node.getPos() - self.camera.getPos()
         self.camera.set_pos(self.camera.get_pos()+(vector*(4*dt)))
+
+        if not self.player.alive:
+            if self.device_listener.read_context('game')["spawn"]:
+                self.start()
+
         return task.cont
 
+    def announce(self, say):
+        base.sounds["announce"][say].play()
 
 def main():
     app = GameApp()

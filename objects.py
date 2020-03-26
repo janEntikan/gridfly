@@ -17,6 +17,38 @@ def limit_node(node):
         node.set_y(0)
 
 
+class Flower():
+    def __init__(self, pos):
+        self.node = NodePath("segment")
+        base.models["misc"]["flower"].instance_to(self.node)
+        self.node.reparent_to(render)
+        self.node.set_pos(pos)
+        base.flowers.append(self)
+        base.announce(choice(("here_comes_flower", "little_flower")))
+        self.time = 0
+        self.flowerpower = 4
+
+    def destroy(self):
+        base.flowers.remove(self)
+        self.node.remove_node()
+
+    def update(self):
+        self.node.set_scale(self.node.get_scale()-globalClock.get_dt()/25)
+        scale = self.node.get_scale().x
+        if scale <= 0.1:
+            self.destroy()
+            return
+        self.node.set_h(self.node.get_h()+1)
+        vector = base.player.node.getPos() - self.node.getPos()
+        distance = vector.get_xy().length()
+        if distance < 1:
+            base.sounds["2d"]["zap_b"].play()
+            self.destroy()
+            base.announce("flower_power")
+            base.player.flowerpower = self.flowerpower*scale
+            base.player.zapping = self.flowerpower*scale
+
+
 class Explosion():
     def __init__(self, geometry, pos, speed=1):
         self.node = NodePath("segment")
@@ -102,6 +134,10 @@ class Chaser():
         self.speed = speed
         self.flash = False
 
+    def destroy(self):
+        base.chasers.remove(self)
+        self.node.remove_node()
+
     def update(self):
         dt = globalClock.get_dt()
         if self.flash:
@@ -109,13 +145,11 @@ class Chaser():
             self.node.set_color(1,1,1,1)
         else:
             self.node.clear_color()
-
-
         if base.player.alive:
             vector = base.player.node.getPos() - self.node.getPos()
             distance = vector.get_xy().length()
             if distance < 0.8:
-                base.player.die()
+                base.player.die(spider=True)
             vector.normalize()
             self.node.set_pos(self.node.get_pos()+(vector*(self.speed*dt)))
             self.node.look_at(base.player.node)
@@ -148,6 +182,9 @@ class EnemySegment():
                 Mine(self.node.get_pos())
             self.following.follower = None
         if self.follower:
+            if base.flower_time[0] >= base.flower_time[1]:
+                Flower(self.node.get_pos())
+                base.flower_time[0] = 0
             if not self.following:
                 self.follower.ouch = 0.3
             else:
@@ -183,20 +220,22 @@ class EnemySegment():
 
         vector = base.player.node.getPos() - self.node.getPos()
         distance = vector.get_xy().length()
-        if distance < 0.5:
+        if distance < 0.8:
             base.player.die()
 
 
 class Bullet():
-    def __init__(self, pos):
+    def __init__(self, pos, scale=1):
         self.node = NodePath("bullet")
         base.models["misc"]["bullet"].instance_to(self.node)
         self.node.reparent_to(render)
         pos.y += 1
         self.node.set_sy(0.1)
+        self.node.set_scale(scale)
         self.node.set_pos(pos)
         base.bullets.append(self)
         self.speed = 0.4
+        self.scale = scale
 
     def destroy(self):
         self.node.remove_node()
@@ -213,7 +252,7 @@ class Bullet():
             self.destroy()
             return
         x, y, z = self.node.get_pos()
-        enemy_size = 0.60
+        enemy_size = self.scale
         me_size = 0.1
         for segment in base.segments:
             vector = segment.node.getPos() - self.node.getPos()
@@ -221,7 +260,7 @@ class Bullet():
             if distance < 0.5:
                 segment.destroy()
                 self.destroy()
-                base.player.extra_bullet += 1
+                base.player.flowerpower += 0.05
                 return
         for chaser in base.chasers:
             vector = chaser.node.getPos() - self.node.getPos()
@@ -239,14 +278,20 @@ class Player():
         self.node.set_scale(0.4)
         self.node.reparent_to(render)
         self.node.loop("flap")
+        self.node.hide()
         self.bullet_timer = [0, 0.1]
         self.movement = [0, 0, 0]
-        self.extra_bullet = 0
         self.accel = 4
         self.speed = 1
-        self.zapper = True
         self.zapping = 0
+        self.flowerpower = 0
+        self.alive = False
+
+    def spawn(self, pos):
+        self.node.show()
+        self.node.set_pos(pos)
         self.alive = True
+        self.zapping = self.flowerpower = 0
 
     def update(self):
         dt = globalClock.get_dt()
@@ -266,23 +311,28 @@ class Player():
                 self.movement[a] = self.speed
             elif self.movement[a] < -self.speed:
                 self.movement[a] = -self.speed
+
         self.node.set_pos(self.node, tuple(self.movement))
         limit_node(self.node)
+        if self.flowerpower > 0:
+            self.flowerpower -= dt
+            self.bullet_timer[1] = 0.05
+            offset = uniform(-0.5, 0.5)
+            scale = 2
+        else:
+            offset = 0
+            self.bullet_timer[1] = 0.1
+            scale = 1
+
         self.bullet_timer[0] += dt
         if self.bullet_timer[0] > self.bullet_timer[1]:
             base.sounds["2d"]["bullet"].set_play_rate(uniform(0.8,1.2))
             base.sounds["2d"]["bullet"].play()
             self.bullet_timer[0] -= self.bullet_timer[1]
-            Bullet(self.node.get_pos())
-        elif self.extra_bullet > 0:
-            base.sounds["2d"]["bullet"].set_play_rate(uniform(0.8,1.2))
-            base.sounds["2d"]["bullet"].play()
-            self.extra_bullet -= 1
-            Bullet(self.node.get_pos())
+            pos = self.node.get_pos()
+            pos.x += offset
+            Bullet(pos, scale)
 
-        if context["zapper"]:
-            base.sounds["2d"]["zap_b"].play()
-            self.zapping = 0.4
         if self.zapping > 0:
             self.zapping -= dt
             self.zap()
@@ -299,11 +349,13 @@ class Player():
             base.zapline(self.node, segment.node)
             segment.destroy(zapped=True)
 
-    def die(self):
+    def die(self, spider=False):
         if self.alive:
-            print("you die")
             base.sounds["2d"]["die"].play()
-            base.sounds["announce"][choice(("youdie", "die"))].play()
+            if not spider:
+                base.announce(choice(("you_die", "die")))
+            else:
+                base.announce("got_you")
             self.node.hide()
             Explosion(base.models["misc"]["explosion_b"], self.node.get_pos(), speed=3)
         self.alive = False

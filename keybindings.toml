@@ -5,7 +5,7 @@
   gamepad = "left_x,left_y"
   keyboard = "arrow_left,arrow_right,arrow_down,arrow_up"
 
-  [game.zapper]
+  [game.spawn]
   _type = "trigger"
   _device_order = ["gamepad", "keyboard"]
   gamepad = "face_x"
