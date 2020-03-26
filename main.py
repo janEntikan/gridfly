@@ -10,6 +10,8 @@ import pman.shim
 from keybindings.device_listener import add_device_listener
 from keybindings.device_listener import SinglePlayerAssigner
 
+from panda3d.core import TextNode
+
 from sounds import load_sounds
 from lines import *
 from objects import *
@@ -41,19 +43,42 @@ class GameApp(ShowBase):
         base.cam.reparent_to(self.camera)
         self.camera.reparent_to(render)
         self.sounds = load_sounds()
-        self.load_models()
         self.music = loader.load_sfx("music/song1.ogg")
         self.music.set_loop(True)
         self.music.play()
-        self.bg = NodePath("bg")
-        for i in range(3):
-            bg = self.bg.attach_new_node("bg-"+str(i))
-            self.models["backgrounds"]["0"].instance_to(bg)
-            bg.set_pos(0,0,-20-(i*20))
-        self.bg.set_scale(self.map_size[0]*4, self.map_size[1]*2, 1)
-        self.bg.set_transparency(True)
-        self.bg.set_alpha_scale(0.03)
-        self.bg.reparent_to(render)
+        self.load_models()
+        self.bg = self.bg_model = None
+        self.make_background()
+
+        self.fonts = {}
+        self.fonts["dot"] = loader.loadFont("fonts/dotrice.otf")
+        self.fonts["pixel"] = loader.loadFont("fonts/pressstart2p.ttf")
+
+        ## FLOATING TEXT GARBAGE
+        self.textimation = Actor("models/textimation.bam")
+        self.textimation.loop("animation")
+        self.announcement = TextNode("announcement")
+        self.announcement.font = self.fonts["dot"]
+        self.announcement.text = ">>GRIDFLY<<\n\nPRESS SPACE TO START\n\n\nMADE BY HENDRIK-JAN\n\nFOR PYWEEK29"
+        self.announcement.align = 2
+        self.announcement.set_text_color((1,0,1,1))
+        self.a_root = render.attach_new_node("announcement")
+        self.a_node = NodePath("announcement")
+        self.announcement_node = self.a_node.attach_new_node(self.announcement)
+        self.announcement_node.set_scale(5)
+        self.announcement_node.set_p(-140)
+        for i in range(4):
+            n = self.a_root.attach_new_node(str("t"+str(i)))
+            self.a_node.instance_to(n)
+            n.set_z(i)
+        self.textimation.expose_joint(self.a_node, jointName="text", partName="modelRoot")
+        self.a_root.reparent_to(self.camera)
+        self.a_root.set_pos((0,70,-50))
+        self.a_root.set_transparency(True)
+        self.a_root.set_alpha_scale(0.5)
+        self.text_timer = 0
+        ## END FLOATING TEXT GARBAGE
+
         self.segments = []
         self.chasers = []
         self.flowers = []
@@ -74,6 +99,9 @@ class GameApp(ShowBase):
         while len(self.zaplines) > 0: self.zaplines[0].destroy()
 
     def start(self):
+        self.a_root.set_pos((0,40,-50))
+        self.announcement_node.set_scale(6)
+
         self.destroy()
         self.announce("starting_game")
         draw_lines(self)
@@ -89,6 +117,23 @@ class GameApp(ShowBase):
         base.linesegs.draw_to(b.get_pos())
         line = render.attach_new_node(base.linesegs.create())
         base.zaplines.append(line)
+
+    def make_background(self, n=0):
+        if self.bg_model:
+            self.bg_model.remove_node()
+        if self.bg:
+            self.bg.remove_node()
+        self.bg_model = Actor("models/bg_"+str(n)+".bam")
+        self.bg_model.loop("animation")
+        self.bg = NodePath("bg")
+        for i in range(3):
+            bg = self.bg.attach_new_node("bg-"+str(i))
+            self.bg_model.instance_to(bg)
+            bg.set_pos(0,0,-20-(i*20))
+        self.bg.set_scale(self.map_size[0]*4, self.map_size[1]*2, 1)
+        self.bg.set_transparency(True)
+        self.bg.set_alpha_scale(0.03)
+        self.bg.reparent_to(render)
 
     def load_models(self):
         models = ["enemies", "misc"]
@@ -106,10 +151,6 @@ class GameApp(ShowBase):
         self.models["chasers"]["spider"].loop("walk")
         self.models["chasers"]["spider"].set_play_rate(2, "walk")
 
-        self.models["backgrounds"] = {}
-        self.models["backgrounds"]["0"] = Actor("models/bg_0.bam")
-        self.models["backgrounds"]["0"].loop("animation")
-
     def make_enemies(self):
         amount = self.level
         gap = (self.map_size[0]*2)/amount
@@ -118,6 +159,12 @@ class GameApp(ShowBase):
 
     def update_objects(self, task):
         dt = globalClock.get_dt()
+        if self.text_timer > 0 and self.player.alive:
+            self.text_timer -= dt
+            if self.text_timer < 0:
+                self.text_timer = 0
+                self.announcement.text = ""
+
         for zapline in self.zaplines:
             zapline.remove_node()
             self.zaplines.remove(zapline)
@@ -170,7 +217,14 @@ class GameApp(ShowBase):
         return task.cont
 
     def announce(self, say):
+        for sound in base.sounds["announce"]:
+            base.sounds["announce"][sound].stop()
         base.sounds["announce"][say].play()
+        s = say.split("_")
+        s = " ".join(s)
+        self.textimation.loop("animation")
+        self.announcement.text = s.upper() + "!!!"
+        self.text_timer = 2
 
 def main():
     app = GameApp()
