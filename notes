@@ -3,26 +3,10 @@ gameplay todo:
     score counter
     high-score register
     combo mechanic
-    flavor texts
+    flavor text
     main menu
 
 art todo:
     more centipedes
     more backgrounds
-
-sounds:
-    spider (spatial, classic centipede spider sound)
-    bullet (very soft)
-    explosion
-    line (very soft, stackable)
-    butterzapper (teslacoil)
-    die (aaarrgh!)
-    game over (leisure suit larry)
-
-    tts "oh baby!" "that's the stuff" "give it to me" "sexy"
-    tts "so close" "sure why not" "butterzapper recharge"
-    tts "here comes flower" "flower power"
-    tts "starting game" "goodbye"
-
-music:
-    minimal house loops
+    more songs

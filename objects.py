@@ -27,6 +27,14 @@ class Explosion():
         base.explosions.append(self)
         self.time = 0
         self.speed = speed
+        if speed > 2:
+            e = "explosion_b"
+            base.sounds["2d"][e].set_play_rate(1)
+        else:
+            e = "explosion_s"
+            base.sounds["2d"][e].set_play_rate(1/speed)
+
+        base.sounds["2d"][e].play()
 
     def destroy(self):
         base.explosions.remove(self)
@@ -64,6 +72,8 @@ class Mine():
         self.time += globalClock.get_dt()
         if self.time > 1:
             if not self.blown:
+                base.sounds["2d"]["lines"].set_loop(True)
+                base.sounds["2d"]["lines"].play()
                 self.blown = True
                 base.models["lines"]["cross"].instance_to(self.cross)
             self.cross.set_scale(self.cross.get_scale()+0.2)
@@ -218,10 +228,9 @@ class Bullet():
             distance = vector.get_xy().length()
             if distance < 0.5:
                 chaser.flash = True
+                base.sounds["2d"]["bounce"].play()
                 self.destroy()
                 return
-
-
 
 
 class Player():
@@ -261,13 +270,18 @@ class Player():
         limit_node(self.node)
         self.bullet_timer[0] += dt
         if self.bullet_timer[0] > self.bullet_timer[1]:
+            base.sounds["2d"]["bullet"].set_play_rate(uniform(0.8,1.2))
+            base.sounds["2d"]["bullet"].play()
             self.bullet_timer[0] -= self.bullet_timer[1]
             Bullet(self.node.get_pos())
         elif self.extra_bullet > 0:
+            base.sounds["2d"]["bullet"].set_play_rate(uniform(0.8,1.2))
+            base.sounds["2d"]["bullet"].play()
             self.extra_bullet -= 1
             Bullet(self.node.get_pos())
 
         if context["zapper"]:
+            base.sounds["2d"]["zap_b"].play()
             self.zapping = 0.4
         if self.zapping > 0:
             self.zapping -= dt
@@ -275,10 +289,12 @@ class Player():
 
     def zap(self):
         if len(base.mines) > 0:
+            base.sounds["2d"]["zap_a"].play()
             mine = choice(base.mines)
             base.zapline(self.node, mine.node)
             mine.destroy()
         if len(base.segments) > 0:
+            base.sounds["2d"]["zap_a"].play()
             segment = choice(base.segments)
             base.zapline(self.node, segment.node)
             segment.destroy(zapped=True)
@@ -286,6 +302,8 @@ class Player():
     def die(self):
         if self.alive:
             print("you die")
+            base.sounds["2d"]["die"].play()
+            base.sounds["announce"][choice(("youdie", "die"))].play()
             self.node.hide()
             Explosion(base.models["misc"]["explosion_b"], self.node.get_pos(), speed=3)
         self.alive = False

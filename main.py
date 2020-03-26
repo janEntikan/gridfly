@@ -10,8 +10,10 @@ import pman.shim
 from keybindings.device_listener import add_device_listener
 from keybindings.device_listener import SinglePlayerAssigner
 
+from sounds import load_sounds
 from lines import *
 from objects import *
+
 
 panda3d.core.load_prc_file(
     panda3d.core.Filename.expand_from('$MAIN_DIR/settings.prc')
@@ -29,7 +31,7 @@ class GameApp(ShowBase):
             assigner=SinglePlayerAssigner(),
         )
 
-        self.level = 0
+        self.level = 1
         self.map_size = [25,50]
         self.camera = NodePath("camera")
         #base.cam.set_pos(0,-25,50)
@@ -38,6 +40,7 @@ class GameApp(ShowBase):
         base.cam.reparent_to(self.camera)
         self.camera.reparent_to(render)
 
+        self.sounds = load_sounds()
         self.load_models()
         draw_lines(self)
 
@@ -55,6 +58,13 @@ class GameApp(ShowBase):
         self.task_mgr.add(self.update_objects)
 
         self.chasers.append(Chaser(self.models["chasers"]["spider"], (0,40,0)))
+        base.sounds["announce"]["startinggame"].play()
+
+        self.music = loader.load_sfx("music/song1.ogg")
+        self.music.set_loop(True)
+        self.music.play()
+
+        self.make_enemies()
 
         for i in range(3):
             bg = NodePath("bg")
@@ -115,6 +125,8 @@ class GameApp(ShowBase):
             bullet.update()
         for mine in self.mines:
             mine.update()
+        if len(self.mines) == 0:
+            self.sounds["2d"]["lines"].stop()
         for chaser in self.chasers:
             chaser.update()
         # segments
@@ -128,6 +140,8 @@ class GameApp(ShowBase):
                     pass
         # end wave
         if len(self.segments) == 0:
+            an = choice(("obaby", "sexy", "thatsthestuff"))
+            base.sounds["announce"][an].play()
             self.level += 1
             self.player.zapping = -1
             self.make_enemies()
