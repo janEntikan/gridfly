@@ -35,7 +35,7 @@ class GameApp(ShowBase):
 
         self.map_size = [25,50]
         self.segment_time = [0, 0.06]
-        self.flower_time = [0, 4]
+        self.flower_time = [0, 4, 0]
         self.camera = NodePath("camera")
         #base.cam.set_pos(0,-25,50)
         base.cam.set_pos(0, -30, 40)
@@ -101,17 +101,18 @@ class GameApp(ShowBase):
     def start(self):
         self.a_root.set_pos((0,40,-50))
         self.announcement_node.set_scale(6)
-
+        self.flower_time[0] = 0
         self.destroy()
-        self.announce("starting_game")
+        self.announce("starting_game", "LEVEL 1")
         draw_lines(self)
         self.level = 1
         self.player.spawn((0,20,0))
-        self.chasers.append(Chaser(self.models["chasers"]["spider"], (0,40,0)))
+        self.chasers.append(Chaser(self.models["chasers"]["spider"], (0,120,0)))
         self.make_enemies()
 
     def zapline(self, a, b):
         color = choice(((1,0,1,1), (1,0,0,1), (0,1,0,1), (0,1,1,1), (0,0,1,1)))
+        base.linesegs.set_thickness(randint(3,5))
         base.linesegs.set_color(color)
         base.linesegs.move_to(a.get_pos())
         base.linesegs.draw_to(b.get_pos())
@@ -199,31 +200,28 @@ class GameApp(ShowBase):
                     pass
         # end wave
         if len(self.segments) == 0 and base.player.alive:
-            self.announce(choice(("give_it_to_me", "oh_baby", "sexy", "thats_the_stuff")))
             self.level += 1
             self.player.zapping = -1
             self.player.flowerpower = 0
             self.flower_time[0] = 0
+            self.announce(choice(("give_it_to_me", "oh_baby", "sexy", "thats_the_stuff")), "LEVEL " + str(self.level))
             self.make_enemies()
-
         # camera
         vector = base.player.node.getPos() - self.camera.getPos()
         self.camera.set_pos(self.camera.get_pos()+(vector*(4*dt)))
-
         if not self.player.alive:
             if self.device_listener.read_context('game')["spawn"]:
                 self.start()
-
         return task.cont
 
-    def announce(self, say):
+    def announce(self, say, extra=""):
         for sound in base.sounds["announce"]:
             base.sounds["announce"][sound].stop()
         base.sounds["announce"][say].play()
         s = say.split("_")
         s = " ".join(s)
         self.textimation.loop("animation")
-        self.announcement.text = s.upper() + "!!!"
+        self.announcement.text = s.upper() + "!!!"+"\n\n"+extra
         self.text_timer = 2
 
 def main():

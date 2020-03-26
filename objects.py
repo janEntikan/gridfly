@@ -26,7 +26,7 @@ class Flower():
         base.flowers.append(self)
         base.announce(choice(("here_comes_flower", "little_flower")))
         self.time = 0
-        self.flowerpower = 4
+        self.flowerpower = 3
 
     def destroy(self):
         base.flowers.remove(self)
@@ -47,6 +47,15 @@ class Flower():
             base.announce("flower_power")
             base.player.flowerpower = self.flowerpower*scale
             base.player.zapping = self.flowerpower*scale
+        for mine in base.mines:
+            try:
+                vector = mine.node.getPos() - self.node.getPos()
+                distance = vector.get_xy().length()
+                if distance < 0.5:
+                    mine.destroy()
+            except:
+                pass
+
 
 
 class Explosion():
@@ -140,21 +149,25 @@ class Chaser():
 
     def update(self):
         dt = globalClock.get_dt()
-        if self.flash:
-            self.flash = False
-            self.node.set_color(1,1,1,1)
-        else:
-            self.node.clear_color()
         if base.player.alive:
             vector = base.player.node.getPos() - self.node.getPos()
             distance = vector.get_xy().length()
             if distance < 0.8:
                 base.player.die(spider=True)
             vector.normalize()
+            if self.flash:
+                self.node.set_y(self.node.get_y()+1)
+
             self.node.set_pos(self.node.get_pos()+(vector*(self.speed*dt)))
             self.node.look_at(base.player.node)
         else:
             self.node.set_pos(self.node, (0,self.speed*dt,0))
+        if self.flash:
+            self.flash = False
+            self.node.set_color(1,1,1,1)
+        else:
+            self.node.clear_color()
+
 
 class EnemySegment():
     def __init__(self, geometry, length=0, x=0, y=0, following=None):
@@ -183,8 +196,9 @@ class EnemySegment():
             self.following.follower = None
         if self.follower:
             if base.flower_time[0] >= base.flower_time[1]:
-                Flower(self.node.get_pos())
-                base.flower_time[0] = 0
+                if not base.player.flowerpower > 0:
+                    Flower(self.node.get_pos())
+                    base.flower_time[0] = 0
             if not self.following:
                 self.follower.ouch = 0.3
             else:
@@ -286,6 +300,7 @@ class Player():
         self.zapping = 0
         self.flowerpower = 0
         self.alive = False
+        self.flower_time = 0
 
     def spawn(self, pos):
         self.node.show()
@@ -335,7 +350,10 @@ class Player():
 
         if self.zapping > 0:
             self.zapping -= dt
-            self.zap()
+            self.flower_time += dt
+            while self.flower_time > 0.1:
+                self.flower_time -= 0.1
+                self.zap()
 
     def zap(self):
         if len(base.mines) > 0:
@@ -351,11 +369,13 @@ class Player():
 
     def die(self, spider=False):
         if self.alive:
+            while len(base.bullets) > 0: base.bullets[0].destroy()
             base.sounds["2d"]["die"].play()
+            extra = "made it to level " + str(base.level)+"\n\nspace to restart"
             if not spider:
-                base.announce(choice(("you_die", "die")))
+                base.announce(choice(("you_die", "die")), extra)
             else:
-                base.announce("got_you")
+                base.announce("got_you",extra)
             self.node.hide()
             Explosion(base.models["misc"]["explosion_b"], self.node.get_pos(), speed=3)
         self.alive = False
