@@ -67,7 +67,7 @@ class GameApp(ShowBase):
         self.announcement_node = self.a_node.attach_new_node(self.announcement)
         self.announcement_node.set_scale(5)
         self.announcement_node.set_p(-130)
-        for i in range(4):
+        for i in range(2):
             n = self.a_root.attach_new_node(str("t"+str(i)))
             self.a_node.instance_to(n)
             n.set_z(i)
