@@ -167,7 +167,7 @@ class EnemySegment():
         self.follower = None
         if length > 0:
             self.follower = EnemySegment(
-                geometry, length=length-1, x=x, y=y-1, following=self)
+                geometry, length=length-1, x=x, y=y+1, following=self)
             base.segments.append(self.follower)
         self.angle = 180
         self.head = self.node.find("**/head")

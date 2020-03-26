@@ -59,14 +59,14 @@ class GameApp(ShowBase):
         self.textimation.loop("animation")
         self.announcement = TextNode("announcement")
         self.announcement.font = self.fonts["dot"]
-        self.announcement.text = ">>GRIDFLY<<\n\nPRESS SPACE TO START\n\n\nMADE BY HENDRIK-JAN\n\nFOR PYWEEK29"
+        self.announcement.text = ">>GRIDFLY<<\n\nPRESS SPACE TO START\n\n\nMADE BY HENDRIK-JAN\n\nFOR PYWEEK29\n\nPANDA3D FOR THE WIN"
         self.announcement.align = 2
         self.announcement.set_text_color((1,0,1,1))
         self.a_root = render.attach_new_node("announcement")
         self.a_node = NodePath("announcement")
         self.announcement_node = self.a_node.attach_new_node(self.announcement)
         self.announcement_node.set_scale(5)
-        self.announcement_node.set_p(-140)
+        self.announcement_node.set_p(-130)
         for i in range(4):
             n = self.a_root.attach_new_node(str("t"+str(i)))
             self.a_node.instance_to(n)
