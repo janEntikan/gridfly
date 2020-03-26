@@ -25,8 +25,6 @@ def draw_lines(base):
         n.reparent_to(render)
         n.set_z(-(i*5))
 
-
-
     # Mine cross
     base.models["lines"] = {}
     base.models["lines"]["cross"] = NodePath("cross")
@@ -43,3 +41,4 @@ def draw_lines(base):
     sequence.loop(True)
     sequence.set_frame_rate(60)
     base.models["lines"]["cross"].attach_new_node(sequence)
+    base.linesegs = linesegs

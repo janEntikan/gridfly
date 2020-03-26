@@ -29,7 +29,8 @@ class GameApp(ShowBase):
             assigner=SinglePlayerAssigner(),
         )
 
-        self.level = 1
+        self.level = 0
+        self.map_size = [25,50]
         self.camera = NodePath("camera")
         #base.cam.set_pos(0,-25,50)
         base.cam.set_pos(0, -30, 40)
@@ -37,7 +38,6 @@ class GameApp(ShowBase):
         base.cam.reparent_to(self.camera)
         self.camera.reparent_to(render)
 
-        self.map_size = [25,50]
         self.load_models()
         draw_lines(self)
 
@@ -50,14 +50,9 @@ class GameApp(ShowBase):
         self.bullets = []
         self.mines = []
         self.explosions = []
+        self.zaplines = []
 
-        self.task_mgr.add(self.update_player)
-        self.task_mgr.add(self.update_segments)
-        self.task_mgr.add(self.update_chasers)
-        self.task_mgr.add(self.update_bullets)
-        self.task_mgr.add(self.update_mines)
-        self.task_mgr.add(self.update_explosions)
-        self.task_mgr.add(self.update_camera)
+        self.task_mgr.add(self.update_objects)
 
         self.chasers.append(Chaser(self.models["chasers"]["spider"], (0,40,0)))
 
@@ -69,6 +64,16 @@ class GameApp(ShowBase):
             bg.set_scale(self.map_size[0]*4, self.map_size[1]*2, 1)
             bg.set_transparency(True)
             bg.set_alpha_scale(0.03)
+
+    def zapline(self, a, b):
+        color = choice(((1,0,1,1), (1,0,0,1), (0,1,0,1), (0,1,1,1), (0,0,1,1)))
+
+        base.linesegs.set_color(color)
+
+        base.linesegs.move_to(a.get_pos())
+        base.linesegs.draw_to(b.get_pos())
+        line = render.attach_new_node(base.linesegs.create())
+        base.zaplines.append(line)
 
     def load_models(self):
         models = ["enemies", "misc"]
@@ -90,54 +95,46 @@ class GameApp(ShowBase):
         self.models["backgrounds"]["0"] = Actor("models/bg_0.bam")
         self.models["backgrounds"]["0"].loop("animation")
 
-    def make_enemies(self, amount):
+    def make_enemies(self):
+        amount = self.level
         gap = (self.map_size[0]*2)/amount
         for i in range(amount):
             self.segments.append(EnemySegment(self.models["enemies"]["cent1"], length=16, x=-self.map_size[0]+(gap*i)))
 
-    def update_player(self, task):
-        self.player.update()
-        return task.cont
+    def update_objects(self, task):
+        dt = globalClock.get_dt()
+        for zapline in self.zaplines:
+            zapline.remove_node()
+            self.zaplines.remove(zapline)
 
-    def update_explosions(self, task):
+        if self.player.alive:
+            self.player.update()
         for explosion in self.explosions:
             explosion.update()
-        return task.cont
-
-    def update_bullets(self, task):
         for bullet in self.bullets:
             bullet.update()
-        return task.cont
-
-    def update_mines(self, task):
         for mine in self.mines:
             mine.update()
-        return task.cont
-
-    def update_chasers(self, task):
         for chaser in self.chasers:
             chaser.update()
-        return task.cont
-
-    def update_segments(self, task):
-        self.segment_time[0] += globalClock.get_dt()
+        # segments
+        self.segment_time[0] += dt
         if self.segment_time[0] > self.segment_time[1]:
             self.segment_time[0] -= self.segment_time[1]
-            for segment in self.segments:
-                segment.update()
+            for s, segment in enumerate(self.segments):
+                try:
+                    segment.update()
+                except:
+                    pass
+        # end wave
         if len(self.segments) == 0:
             self.level += 1
-            self.make_enemies(self.level)
-        return task.cont
+            self.player.zapping = -1
+            self.make_enemies()
 
-    def update_camera(self, task):
-        dt = globalClock.get_dt()
-        #self.camera.set_pos(self.player.node.get_pos())
+        # camera
         vector = base.player.node.getPos() - self.camera.getPos()
-        #distance = vector.get_xy().length()
-        #vector.normalize()
         self.camera.set_pos(self.camera.get_pos()+(vector*(4*dt)))
-
         return task.cont
 
 
