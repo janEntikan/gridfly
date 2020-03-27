@@ -70,7 +70,7 @@ class Flower():
             Score(self.node.get_pos(), "1000")
             base.sounds["2d"]["zap_b"].play()
             self.destroy()
-            base.announce("flower_power")
+            base.announce(choice(("flower_power","butterzapper_recharge")))
             base.player.flowerpower = self.flowerpower*scale
             base.player.zapping = self.flowerpower*scale
 
@@ -191,7 +191,7 @@ class EnemySegment():
         self.node = NodePath("segment")
         geometry.copy_to(self.node)
         self.node.reparent_to(render)
-        self.node.set_y(base.map_size[1]+y)
+        self.node.set_y(100+y)
         self.node.set_x(x)
         self.following = following
         self.follower = None
@@ -280,7 +280,7 @@ class Bullet():
         scale = self.node.get_sy()
         if scale < 1:
             self.node.set_sy(scale+0.1)
-        if y > 60:
+        if y > 50:
             self.destroy()
             return
         x, y, z = self.node.get_pos()
@@ -337,6 +337,7 @@ class Player():
         self.flower_time = 0
         self.combo = 0
         self.combo_time = 0
+        self.highscore = False
 
     def spawn(self, pos):
         self.node.show()
@@ -349,6 +350,8 @@ class Player():
         if self.combo_time > 0:
             self.combo_time -= dt
         else:
+            if self.combo >= self.max_combo-1 and self.combo < self.max_combo:
+                base.announce("so_close")
             self.combo = 0
 
         context = base.device_listener.read_context('game')
@@ -424,6 +427,12 @@ class Player():
                 else:
                     base.announce("got_you",extra)
             else:
-                base.announce("game_over", "You reached level " + str(base.level) + "\n\nPress space to restart.")
+                extra = ""
+                if self.highscore:
+                    extra = "NEW HIGHSCORE!!!\n\n"
+                extra += "You reached level " + str(base.level) + "\n\nPress space to restart."
+
+
+                base.announce("game_over", extra)
                 base.sounds["2d"]["gameover"].play()
         self.alive = False

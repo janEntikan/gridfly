@@ -45,7 +45,7 @@ class GameApp(ShowBase):
         self.sounds = load_sounds()
         self.music = loader.load_sfx("music/song1.ogg")
         self.music.set_loop(True)
-        #self.music.play()
+        self.music.play()
         self.load_models()
         self.bg = self.bg_model = None
         self.make_background()
@@ -88,6 +88,7 @@ class GameApp(ShowBase):
         self.infotext_node = render2d.attach_new_node(self.infotext)
         self.infotext_node.set_scale(0.02)
         self.infotext_node.set_pos(-0.95,0,0.9)
+        self.infotext_node.hide()
 
         self.numbers = {}
         numbers = ["10"]
@@ -132,11 +133,12 @@ class GameApp(ShowBase):
             draw_lines(self)
             self.announce("starting_game", "LEVEL 1 \n\n WAVE 1")
             self.extra_life = 0
-
+            self.player.highscore = False
             self.level = 1
             self.wave = 1
             self.lives = 3
             self.score = 0
+        self.infotext_node.show()
         self.player.spawn((0,20,0))
         self.chasers.append(Chaser(self.models["chasers"]["spider"], (0,60,0)))
         self.make_enemies()
@@ -185,15 +187,18 @@ class GameApp(ShowBase):
 
     def make_enemies(self):
         #self.segment_time = [0, 0.06]
-        self.segment_time = [0, 0.1-(0.01*self.level)]
+        self.segment_time = [0, 0.1-(0.005*self.level)]
         self.chasers[0].speed = self.level
+        if self.chasers[0].speed > 6:
+            self.chasers[0].speed = 6
+
         amount = self.wave+1
         self.player.max_combo = 4+(self.level*2)
         gap = (self.map_size[0]*2)/amount
         for i in range(amount):
             self.segments.append(EnemySegment(
-                self.models["enemies"]["cent"+str(self.level)],
-                length=4+(self.level*2), x=-self.map_size[0]+(gap*i)))
+                self.models["enemies"]["cent"+str(((self.level-1)%7)+1)],
+                length=4+(self.level*2), x=-self.map_size[0]+((gap/2)+gap*i)))
 
     def update_objects(self, task):
         dt = globalClock.get_dt()
@@ -248,7 +253,7 @@ class GameApp(ShowBase):
             self.player.zapping = -1
             self.player.flowerpower = 0
             self.flower_time[0] = 0
-            self.announce(choice(("give_it_to_me", "oh_baby", "sexy", "thats_the_stuff")),
+            self.announce(choice(("give_it_to_me", "oh_baby", "sexy", "thats_the_stuff", "sure_why_not")),
                 "LEVEL " + str(self.level)+"\n\nWAVE " + str(self.wave))
             self.make_enemies()
         # camera
@@ -262,12 +267,14 @@ class GameApp(ShowBase):
                     self.start(True)
                     self.announcement.text = ""
         self.infotext.text = "HIGHSCORE:{}\n\nSCORE:{}\n\nLIVES:{}".format(self.highscore, self.score, self.lives)
-        if self.score > self.highscore: self.highscore = self.score
+        if self.score > self.highscore:
+            self.highscore = self.score
+            self.player.highscore = True
         if self.score > 25000*(self.extra_life+1):
+            self.announcement.text = str(25000*(self.extra_life+1)) + str("POINTS!!!\n\nEXTRA LIFE!!!")
             self.extra_life += 1
             self.lives += 1
             base.sounds["2d"]["extralife"].play()
-            self.announcement.text = str(25000*(self.extra_life+1)) + str("POINTS!!!\n\nEXTRA LIFE!!!")
             self.text_timer = 2
 
         return task.cont

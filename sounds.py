@@ -21,7 +21,7 @@ def load_sounds():
     sounds = (
         "butterzapper_recharge", "die", "flower_power", "game_over", "give_it_to_me",
         "goodbye", "got_you", "here_comes_flower", "little_flower", "oh_baby",
-        "sexy", "so_close", "starting_game", "super_combo", "sure",
+        "sexy", "so_close", "starting_game", "super_combo", "sure_why_not",
         "thats_the_stuff", "you_die"
     )
     for sound in sounds:
