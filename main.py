@@ -32,10 +32,10 @@ class GameApp(ShowBase):
             config_file='keybindings.toml',
             assigner=SinglePlayerAssigner(),
         )
-
         self.map_size = [25,50]
         self.segment_time = [0, 0.06]
-        self.flower_time = [0, 4, 0]
+        self.flower_time = [0, 4]
+        self.extra_life = 0
         self.camera = NodePath("camera")
         #base.cam.set_pos(0,-25,50)
         base.cam.set_pos(0, -30, 40)
@@ -45,7 +45,7 @@ class GameApp(ShowBase):
         self.sounds = load_sounds()
         self.music = loader.load_sfx("music/song1.ogg")
         self.music.set_loop(True)
-        self.music.play()
+        #self.music.play()
         self.load_models()
         self.bg = self.bg_model = None
         self.make_background()
@@ -79,6 +79,30 @@ class GameApp(ShowBase):
         self.text_timer = 0
         ## END FLOATING TEXT GARBAGE
 
+        self.highscore = 0
+        self.score = 0
+        self.lives = 0
+        self.infotext = TextNode("info")
+        self.infotext.font = self.fonts["pixel"]
+        self.infotext.text = "HIGHSCORE:{}\n\nSCORE:{}\n\nLIVES:{}".format(self.highscore, self.score, self.lives)
+        self.infotext_node = render2d.attach_new_node(self.infotext)
+        self.infotext_node.set_scale(0.02)
+        self.infotext_node.set_pos(-0.95,0,0.9)
+
+        self.numbers = {}
+        numbers = ["10"]
+        for i in range(1, 25):
+            numbers.append(str((i)*50))
+        numbers.append("1000")
+        for n, number in enumerate(numbers):
+            self.numbers[number] = NodePath(number), TextNode(number)
+            self.numbers[number][1].text = number
+            self.numbers[number][1].align = 2
+            self.numbers[number][1].font = self.fonts["pixel"]
+            self.numbers[number][1].set_text_color((0,1,1,1))
+            self.numbers[number][0].attach_new_node(self.numbers[number][1])
+            self.numbers[number][0].set_scale(0.5+(n/10))
+
         self.segments = []
         self.chasers = []
         self.flowers = []
@@ -86,6 +110,7 @@ class GameApp(ShowBase):
         self.mines = []
         self.explosions = []
         self.zaplines = []
+        self.scores = []
         self.player = Player()
         self.task_mgr.add(self.update_objects)
 
@@ -98,16 +123,22 @@ class GameApp(ShowBase):
         while len(self.explosions) > 0: self.explosions[0].destroy()
         while len(self.zaplines) > 0: self.zaplines[0].destroy()
 
-    def start(self):
-        self.a_root.set_pos((0,40,-50))
+    def start(self, spawn=False):
+        self.a_root.set_pos((0,50,-50))
         self.announcement_node.set_scale(6)
         self.flower_time[0] = 0
         self.destroy()
-        self.announce("starting_game", "LEVEL 1")
-        draw_lines(self)
-        self.level = 1
+        if not spawn:
+            draw_lines(self)
+            self.announce("starting_game", "LEVEL 1 \n\n WAVE 1")
+            self.extra_life = 0
+
+            self.level = 1
+            self.wave = 1
+            self.lives = 3
+            self.score = 0
         self.player.spawn((0,20,0))
-        self.chasers.append(Chaser(self.models["chasers"]["spider"], (0,120,0)))
+        self.chasers.append(Chaser(self.models["chasers"]["spider"], (0,60,0)))
         self.make_enemies()
 
     def zapline(self, a, b):
@@ -153,10 +184,16 @@ class GameApp(ShowBase):
         self.models["chasers"]["spider"].set_play_rate(2, "walk")
 
     def make_enemies(self):
-        amount = self.level
+        #self.segment_time = [0, 0.06]
+        self.segment_time = [0, 0.1-(0.01*self.level)]
+        self.chasers[0].speed = self.level
+        amount = self.wave+1
+        self.player.max_combo = 4+(self.level*2)
         gap = (self.map_size[0]*2)/amount
         for i in range(amount):
-            self.segments.append(EnemySegment(self.models["enemies"]["cent1"], length=16, x=-self.map_size[0]+(gap*i)))
+            self.segments.append(EnemySegment(
+                self.models["enemies"]["cent"+str(self.level)],
+                length=4+(self.level*2), x=-self.map_size[0]+(gap*i)))
 
     def update_objects(self, task):
         dt = globalClock.get_dt()
@@ -189,6 +226,10 @@ class GameApp(ShowBase):
             chaser.update()
         for flower in self.flowers:
             flower.update()
+        for score in self.scores:
+            score.update()
+        for number in self.numbers:
+            self.numbers[number][1].set_text_color(choice(((0,1,1,1),(0,1,0,1),(0,0,1,1))))
         # segments
         self.segment_time[0] += dt
         if self.segment_time[0] > self.segment_time[1]:
@@ -200,18 +241,35 @@ class GameApp(ShowBase):
                     pass
         # end wave
         if len(self.segments) == 0 and base.player.alive:
-            self.level += 1
+            self.wave += 1
+            if self.wave > 4:
+                self.wave = 1
+                self.level += 1
             self.player.zapping = -1
             self.player.flowerpower = 0
             self.flower_time[0] = 0
-            self.announce(choice(("give_it_to_me", "oh_baby", "sexy", "thats_the_stuff")), "LEVEL " + str(self.level))
+            self.announce(choice(("give_it_to_me", "oh_baby", "sexy", "thats_the_stuff")),
+                "LEVEL " + str(self.level)+"\n\nWAVE " + str(self.wave))
             self.make_enemies()
         # camera
         vector = base.player.node.getPos() - self.camera.getPos()
         self.camera.set_pos(self.camera.get_pos()+(vector*(4*dt)))
         if not self.player.alive:
             if self.device_listener.read_context('game')["spawn"]:
-                self.start()
+                if self.lives == 0:
+                    self.start()
+                else:
+                    self.start(True)
+                    self.announcement.text = ""
+        self.infotext.text = "HIGHSCORE:{}\n\nSCORE:{}\n\nLIVES:{}".format(self.highscore, self.score, self.lives)
+        if self.score > self.highscore: self.highscore = self.score
+        if self.score > 25000*(self.extra_life+1):
+            self.extra_life += 1
+            self.lives += 1
+            base.sounds["2d"]["extralife"].play()
+            self.announcement.text = str(25000*(self.extra_life+1)) + str("POINTS!!!\n\nEXTRA LIFE!!!")
+            self.text_timer = 2
+
         return task.cont
 
     def announce(self, say, extra=""):

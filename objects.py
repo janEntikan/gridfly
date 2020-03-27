@@ -17,9 +17,29 @@ def limit_node(node):
         node.set_y(0)
 
 
+class Score():
+    def __init__(self, pos, score):
+        base.score += int(score)
+        self.node = NodePath("score")
+        base.numbers[score][0].instance_to(self.node)
+        self.node.reparent_to(render)
+        self.node.set_pos(pos)
+        base.scores.append(self)
+        self.time = 0
+
+    def destroy(self):
+        base.scores.remove(self)
+        self.node.remove_node()
+
+    def update(self):
+        self.node.set_z(self.node.get_z()+(15*globalClock.get_dt()))
+        if self.node.get_z() > 10:
+            self.destroy()
+
+
 class Flower():
     def __init__(self, pos):
-        self.node = NodePath("segment")
+        self.node = NodePath("flower")
         base.models["misc"]["flower"].instance_to(self.node)
         self.node.reparent_to(render)
         self.node.set_pos(pos)
@@ -33,34 +53,31 @@ class Flower():
         self.node.remove_node()
 
     def update(self):
-        self.node.set_scale(self.node.get_scale()-globalClock.get_dt()/25)
+        self.node.set_scale(self.node.get_scale()-globalClock.get_dt()/15)
         scale = self.node.get_scale().x
         if scale <= 0.1:
             self.destroy()
             return
+        for mine in base.mines:
+            vector = mine.node.getPos() - self.node.getPos()
+            distance = vector.get_xy().length()
+            if distance < 0.5:
+                mine.destroy()
         self.node.set_h(self.node.get_h()+1)
         vector = base.player.node.getPos() - self.node.getPos()
         distance = vector.get_xy().length()
         if distance < 1:
+            Score(self.node.get_pos(), "1000")
             base.sounds["2d"]["zap_b"].play()
             self.destroy()
             base.announce("flower_power")
             base.player.flowerpower = self.flowerpower*scale
             base.player.zapping = self.flowerpower*scale
-        for mine in base.mines:
-            try:
-                vector = mine.node.getPos() - self.node.getPos()
-                distance = vector.get_xy().length()
-                if distance < 0.5:
-                    mine.destroy()
-            except:
-                pass
-
 
 
 class Explosion():
     def __init__(self, geometry, pos, speed=1):
-        self.node = NodePath("segment")
+        self.node = NodePath("explosion")
         geometry.instance_to(self.node)
         self.node.reparent_to(render)
         self.node.set_pos(pos)
@@ -93,7 +110,7 @@ class Explosion():
 class Mine():
     def __init__(self, pos):
         self.time = 0
-        self.node = NodePath("segment")
+        self.node = NodePath("mine")
         self.cross = NodePath("cross")
         base.models["misc"]["egg"].instance_to(self.node)
         self.node.reparent_to(render)
@@ -183,9 +200,9 @@ class EnemySegment():
                 geometry, length=length-1, x=x, y=y+1, following=self)
             base.segments.append(self.follower)
         self.angle = 180
-        self.head = self.node.find("**/head")
-        self.mid = self.node.find("**/mid")
-        self.tail = self.node.find("**/tail")
+        self.head = self.node.find("**/head*")
+        self.mid = self.node.find("**/mid*")
+        self.tail = self.node.find("**/tail*")
         self.ouch = 0
 
     def destroy(self, zapped=False):
@@ -229,6 +246,7 @@ class EnemySegment():
             x, y, z = self.node.get_pos()
             xsize, ysize = base.map_size
             if x < -xsize or x > xsize or y < 0 or y > ysize:
+                base.sounds["2d"]["bounce"].play()
                 self.angle += 180 + randint(-45, 45)
             limit_node(self.node)
 
@@ -272,10 +290,26 @@ class Bullet():
             vector = segment.node.getPos() - self.node.getPos()
             distance = vector.get_xy().length()
             if distance < 0.5:
+                player = base.player
+                if not segment.following:
+                    player.combo_time = 0.1
+                    player.combo += 1
+                    if base.player.combo > player.max_combo:
+                        base.announce("super_combo")
+                        base.sounds["2d"]["combo"].play()
+                        prize = "1000"
+                        player.combo = 0
+                    else:
+                        prize = str(50*player.combo)
+                    Score(self.node.get_pos(), prize)
+                else:
+                    Score(self.node.get_pos(), "10")
+                    player.combo_time = 0
                 segment.destroy()
                 self.destroy()
-                base.player.flowerpower += 0.05
+                player.flowerpower += 0.05
                 return
+
         for chaser in base.chasers:
             vector = chaser.node.getPos() - self.node.getPos()
             distance = vector.get_xy().length()
@@ -301,6 +335,8 @@ class Player():
         self.flowerpower = 0
         self.alive = False
         self.flower_time = 0
+        self.combo = 0
+        self.combo_time = 0
 
     def spawn(self, pos):
         self.node.show()
@@ -310,11 +346,16 @@ class Player():
 
     def update(self):
         dt = globalClock.get_dt()
+        if self.combo_time > 0:
+            self.combo_time -= dt
+        else:
+            self.combo = 0
+
         context = base.device_listener.read_context('game')
         gx, gy = context["movement"]
         for a, axis in enumerate((gx, gy)):
             accel = self.accel*dt
-            if axis:
+            if axis > 0.01 or axis < -0.01:
                 self.movement[a] += axis*accel
             elif self.movement[a] > 0.1:
                 self.movement[a] -= accel
@@ -365,17 +406,24 @@ class Player():
             base.sounds["2d"]["zap_a"].play()
             segment = choice(base.segments)
             base.zapline(self.node, segment.node)
+            Score(segment.node.get_pos(), "10")
             segment.destroy(zapped=True)
 
     def die(self, spider=False):
         if self.alive:
             while len(base.bullets) > 0: base.bullets[0].destroy()
             base.sounds["2d"]["die"].play()
-            extra = "made it to level " + str(base.level)+"\n\nspace to restart"
-            if not spider:
-                base.announce(choice(("you_die", "die")), extra)
-            else:
-                base.announce("got_you",extra)
             self.node.hide()
             Explosion(base.models["misc"]["explosion_b"], self.node.get_pos(), speed=3)
+
+            base.lives -= 1
+            if base.lives > 0:
+                extra = str(base.lives) +" lives left!\n\nspace to spawn"
+                if not spider:
+                    base.announce(choice(("you_die", "die")), extra)
+                else:
+                    base.announce("got_you",extra)
+            else:
+                base.announce("game_over", "You reached level " + str(base.level) + "\n\nPress space to restart.")
+                base.sounds["2d"]["gameover"].play()
         self.alive = False

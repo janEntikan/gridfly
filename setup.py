@@ -23,6 +23,7 @@ setup(
         'build_apps': {
             'include_patterns': [
                 CONFIG['build']['export_dir']+'/**',
+                'keybindings.toml',
                 'settings.prc',
             ],
             'exclude_patterns': [

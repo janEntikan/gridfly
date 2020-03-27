@@ -4,7 +4,7 @@ def load_sounds():
     loaded_sounds["2d"] = {}
     sounds = (
         "bounce", "bullet", "die", "explosion_s", "explosion_b",
-        "gameover", "lines", "zap_a", "zap_b"
+        "gameover", "lines", "zap_a", "zap_b", "combo", "extralife"
     )
     for sound in sounds:
         loaded_sounds["2d"][sound] = loader.load_sfx("sfx/"+sound+".ogg")
