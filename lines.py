@@ -6,7 +6,7 @@ def draw_lines(base):
     # Border
     xs, ys = base.map_size
     sequence = SequenceNode("border")
-    for color in ((0,0,0.1,1), (0,0,0.2,1), (0,0,0.3,1), (0,0,0.2,1)):
+    for color in ((0,0,0.4,1), (0,0,0.5,1), (0,0,0.6,1), (0,0,0.5,1)):
         linesegs.set_color(color)
         linesegs.set_thickness(3)
         linesegs.move_to((-xs,0,0))

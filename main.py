@@ -166,7 +166,7 @@ class GameApp(ShowBase):
             bg.set_pos(0,0,-20-(i*20))
         self.bg.set_scale(self.map_size[0]*4, self.map_size[1]*2, 1)
         self.bg.set_transparency(True)
-        self.bg.set_alpha_scale(0.03)
+        self.bg.set_alpha_scale(0.1)
         self.bg.reparent_to(render)
 
     def load_models(self):
@@ -218,7 +218,7 @@ class GameApp(ShowBase):
             if self.player.zapping > 0:
                 self.bg.set_alpha_scale(0.2)
             else:
-                self.bg.set_alpha_scale(0.03)
+                self.bg.set_alpha_scale(0.06)
         for explosion in self.explosions:
             explosion.update()
         for bullet in self.bullets:
