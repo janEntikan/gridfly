@@ -130,6 +130,7 @@ class GameApp(ShowBase):
         self.flower_time[0] = 0
         self.destroy()
         if not spawn:
+            base.music.set_volume(1)
             draw_lines(self)
             self.announce("starting_game", "LEVEL 1 \n\n WAVE 1")
             self.extra_life = 0

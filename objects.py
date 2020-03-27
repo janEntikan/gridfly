@@ -434,5 +434,6 @@ class Player():
 
 
                 base.announce("game_over", extra)
+                base.music.set_volume(0)
                 base.sounds["2d"]["gameover"].play()
         self.alive = False
