@@ -103,7 +103,7 @@ class GameApp(ShowBase):
             self.numbers[number][1].set_text_color((0,1,1,1))
             self.numbers[number][0].attach_new_node(self.numbers[number][1])
             self.numbers[number][0].set_scale(0.5+(n/10))
-
+        self.first = True
         self.segments = []
         self.chasers = []
         self.flowers = []
@@ -125,13 +125,15 @@ class GameApp(ShowBase):
         while len(self.zaplines) > 0: self.zaplines[0].destroy()
 
     def start(self, spawn=False):
+        if self.first:
+            draw_lines(self)
+            self.first = False
         self.a_root.set_pos((0,50,-50))
         self.announcement_node.set_scale(6)
         self.flower_time[0] = 0
         self.destroy()
         if not spawn:
             base.music.set_volume(1)
-            draw_lines(self)
             self.announce("starting_game", "LEVEL 1 \n\n WAVE 1")
             self.extra_life = 0
             self.player.highscore = False
