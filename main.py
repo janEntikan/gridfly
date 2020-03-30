@@ -11,6 +11,7 @@ from keybindings.device_listener import add_device_listener
 from keybindings.device_listener import SinglePlayerAssigner
 
 from panda3d.core import TextNode
+from panda3d.core import WindowProperties
 
 from sounds import load_sounds
 from lines import *
@@ -26,12 +27,21 @@ class GameApp(ShowBase):
     def __init__(self):
         ShowBase.__init__(self)
         pman.shim.init(self)
+        info = self.pipe.getDisplayInformation()
+        for idx in range(info.getTotalDisplayModes()):
+            width = info.getDisplayModeWidth(idx)
+            height = info.getDisplayModeHeight(idx)
+            bits = info.getDisplayModeBitsPerPixel(idx)
+        wp = WindowProperties()
+        wp.set_size(width, height)
+        base.win.requestProperties(wp)
         base.win.set_clear_color((0,0,0,1))
         self.accept('escape', sys.exit)
         add_device_listener(
-            config_file='keybindings.toml',
+            config_file=panda3d.core.Filename.expand_from('$MAIN_DIR/keybindings.toml'),
             assigner=SinglePlayerAssigner(),
         )
+
         self.map_size = [25,50]
         self.segment_time = [0, 0.06]
         self.flower_time = [0, 4]

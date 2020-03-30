@@ -40,6 +40,16 @@ setup(
                 'pandagl',
                 'p3openal_audio',
             ],
+            'icons': {
+                'run_game': [
+                   'assets/icons/icon-256.png',
+                   'assets/icons/icon-128.png',
+                   'assets/icons/icon-64.png',
+                   'assets/icons/icon-48.png',
+                   'assets/icons/icon-32.png'
+                ]
+            },
+            'log_filename': '$USER_APPDATA/gridfly/output.log',
         },
     }
 )
