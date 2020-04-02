@@ -370,8 +370,8 @@ class Player():
                 self.movement[a] = self.speed
             elif self.movement[a] < -self.speed:
                 self.movement[a] = -self.speed
-
-        self.node.set_pos(self.node, tuple(self.movement))
+        #self.node.set_pos(self.node, tuple(self.movement))
+        self.node.set_pos(self.node, Vec3(*self.movement)*65*dt)
         limit_node(self.node)
         if self.flowerpower > 0:
             self.flowerpower -= dt
